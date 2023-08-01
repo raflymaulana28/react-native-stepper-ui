@@ -1,4 +1,4 @@
-import React, { FC, useState, ReactElement, useEffect } from 'react';
+import React, {FC, useState, ReactElement} from 'react';
 import {
   View,
   Text,
@@ -11,20 +11,31 @@ import {
 export interface StepperProps {
   active: number;
   content: ReactElement[];
+  data?: any[];
   onNext: Function;
   onBack: Function;
   onFinish: Function;
   wrapperStyle?: ViewStyle;
   stepStyle?: ViewStyle;
-  stepLine?:ViewStyle;
   stepTextStyle?: TextStyle;
   buttonStyle?: ViewStyle;
   buttonTextStyle?: TextStyle;
   showButton?: boolean;
+  hideNumberStep?: boolean;
+  parentStepStyle?: ViewStyle;
+  hideContent?: boolean;
+  textOnLabelStyle?: TextStyle;
+  textOffLabelStyle?: TextStyle;
+  parentLabelStyle?: ViewStyle;
 }
 
-const search = (keyName: number, myArray: number[]): boolean => {
-  return myArray.some((val) => val === keyName);
+const search = (keyName: number, active: number): boolean => {
+  let value = false;
+ 
+    if (active >= keyName) {
+      value = true;
+    }
+  return value;
 };
 
 const Stepper: FC<StepperProps> = (props) => {
@@ -35,12 +46,18 @@ const Stepper: FC<StepperProps> = (props) => {
     onNext,
     onFinish,
     wrapperStyle,
-    stepLine,
     stepStyle,
     stepTextStyle,
     buttonStyle,
     buttonTextStyle,
     showButton = true,
+	hideNumberStep = false,
+	parentStepStyle,
+	hideContent = false,
+	parentLabelStyle,
+	textOnLabelStyle,
+	textOffLabelStyle,
+	data
   } = props;
   const [step, setStep] = useState<number[]>([0]);
   const pushData = (val: number) => {
@@ -53,36 +70,28 @@ const Stepper: FC<StepperProps> = (props) => {
       return prev;
     });
   };
-
-  useEffect(() => {
-    if (step[step.length - 1] > active) {
-      removeData();
-    } else {
-      pushData(active);
-    }
-  }, [active]);
-
   return (
     <View style={wrapperStyle}>
       <View
-        style={{
+        style={[{
           flexDirection: 'row',
           justifyContent: 'center',
           alignItems: 'center',
-        }}
-      >
-        {content.map((_, i) => {
+        },
+		parentStepStyle,
+		]}>
+        {(data?.length >0 ? data:content).map((_, i) => {
           return (
             <React.Fragment key={i}>
               {i !== 0 && (
                 <View
-                  style={[{
+                  style={{
                     flex: 1,
                     height: 1,
-                    backgroundColor: 'grey',
+                    backgroundColor: search(i, active) ? '#32BFC5' : 'grey',
                     opacity: 1,
                     marginHorizontal: 10,
-                  },stepLine]}
+                  }}
                 />
               )}
               <View
@@ -94,21 +103,19 @@ const Stepper: FC<StepperProps> = (props) => {
                     borderRadius: 30,
                     justifyContent: 'center',
                     alignItems: 'center',
-                    opacity: search(i, step) ? 1 : 0.3,
+                    opacity: search(i, active) ? 1 : 0.3,
                   },
                   stepStyle,
-                ]}
-              >
-                {search(i, step) ? (
+                ]}>
+                {search(i, active) ? (
                   <Text
                     style={[
                       {
                         color: 'white',
                       },
                       stepTextStyle,
-                    ]}
-                  >
-                    &#10003;
+                    ]}>
+                  {!hideNumberStep && i + 1}
                   </Text>
                 ) : (
                   <Text
@@ -117,9 +124,8 @@ const Stepper: FC<StepperProps> = (props) => {
                         color: 'white',
                       },
                       stepTextStyle,
-                    ]}
-                  >
-                    {i + 1}
+                    ]}>
+                    {!hideNumberStep && i + 1}
                   </Text>
                 )}
               </View>
@@ -127,15 +133,36 @@ const Stepper: FC<StepperProps> = (props) => {
           );
         })}
       </View>
+	  {data?.length >0 && hideContent && (
+		 <View
+		 style={[{
+		   flexDirection: 'row',
+		   alignItems: 'center',
+		   justifyContent: 'space-between',
+		   width: '100%',
+		 },
+		 parentLabelStyle,
+		 ]}>
+			{data.map((d, i) => (
+
+  <View key={i} style={{width:`${Math.round(100/data?.length)}%`}}>
+			  <Text style={[{textAlign: i===0? 'left':i + 1=== data?.length? 'right' :'center'},search(i , active) ? textOnLabelStyle: textOffLabelStyle]}>
+			  {d?.title}
+			</Text>
+			</View>
+
+			))}
+			</View>
+	  )}
+	  {!hideContent && (
       <ScrollView showsVerticalScrollIndicator={false}>
         {content[active]}
-      </ScrollView>
+      </ScrollView>)}
       {showButton && (
         <View
           style={{
             flexDirection: 'row',
-          }}
-        >
+          }}>
           {active !== 0 && (
             <TouchableOpacity
               style={[
@@ -151,11 +178,10 @@ const Stepper: FC<StepperProps> = (props) => {
                 },
               ]}
               onPress={() => {
-                // removeData();
+                removeData();
                 onBack();
-              }}
-            >
-              <Text style={[{ color: 'white' }, buttonTextStyle]}>Back</Text>
+              }}>
+              <Text style={[{color: 'white'}, buttonTextStyle]}>Back</Text>
             </TouchableOpacity>
           )}
           {content.length - 1 !== active && (
@@ -171,11 +197,10 @@ const Stepper: FC<StepperProps> = (props) => {
                 buttonStyle,
               ]}
               onPress={() => {
-                // pushData(active + 1);
+                pushData(active + 1);
                 onNext();
-              }}
-            >
-              <Text style={[{ color: 'white' }, buttonTextStyle]}>Next</Text>
+              }}>
+              <Text style={[{color: 'white'}, buttonTextStyle]}>Next</Text>
             </TouchableOpacity>
           )}
           {content.length - 1 === active && (
@@ -189,9 +214,8 @@ const Stepper: FC<StepperProps> = (props) => {
                 },
                 buttonStyle,
               ]}
-              onPress={() => onFinish()}
-            >
-              <Text style={[{ color: 'white' }, buttonTextStyle]}>Finish</Text>
+              onPress={() => onFinish()}>
+              <Text style={[{color: 'white'}, buttonTextStyle]}>Finish</Text>
             </TouchableOpacity>
           )}
         </View>
